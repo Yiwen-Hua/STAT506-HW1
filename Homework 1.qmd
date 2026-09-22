@@ -1,0 +1,276 @@
+---
+title: "STATS 506 HW 1"
+author: "Yiwen Hua"
+format:
+  html:
+    embed-resources: true
+editor: visual
+---
+
+# Problem 1
+
+## a
+
+```{r}
+soybean <- read.csv("data.csv", header = TRUE)
+```
+
+## b
+
+```{r}
+nrow(soybean)
+length(unique(soybean$Cultivar))
+length(unique(soybean$Season))
+table(soybean$Season)
+```
+
+There are 320 observations, 40 distinct cultivars, and two seasons.
+
+Each season contains 160 observations.
+
+## c
+
+```{r}
+cor(soybean$PH, soybean$GY)
+```
+
+**Q1:** The correlation between plant height and grain yield is approximately 0.123.
+
+```{r}
+season1 <- subset(soybean, Season == 1)
+season2 <- subset(soybean, Season == 2)
+cor(season1$PH, season1$GY)
+cor(season2$PH, season2$GY)
+
+```
+
+
+**Q2:** It can be seen from the data that Season 1 has the higher correlation. (0.231 vs -0.023)
+
+
+```{r}
+i <- which.max(soybean$PH)
+i
+soybean$PH[i]
+soybean$GY[i]
+```
+
+**Q3:** Observation 315 has the greatest plant height, the corresponding yield is 3304.678 (kg/ha).
+
+```{r}
+mean(soybean$MHG)
+100 * mean(soybean$MHG > mean(soybean$MHG))
+```
+
+**Q4:** Approximately 47.2% of the observations have a thousand seed weight (MHG) greater than the overall average thousand seed weight.
+
+```{r}
+avg_gy <- aggregate(GY ~ Cultivar, data = soybean, FUN = mean)
+avg_gy[which.max(avg_gy$GY), ]
+```
+
+**Q5:** Cultivar 98R30 CE has the highest average grain yield, with an average GY of 3964.968.
+
+## d
+
+```{r}
+quant_vars <- c("PH", "IFP", "NLP", "NGP", "NGL", "NS", "MHG", "GY")
+
+overall_avg <- colMeans(soybean[quant_vars])
+season1_avg <- colMeans(season1[quant_vars])
+season2_avg <- colMeans(season2[quant_vars])
+
+avg_table <- rbind(
+  Overall = overall_avg,
+  Season1 = season1_avg,
+  Season2 = season2_avg
+)
+
+avg_table
+```
+
+The table above clearly identifies what each row represents. 
+
+## e
+
+**Null hypothesis:** \(H_0: \mu_1 = \mu_2\)
+
+**Alternative hypothesis:** \(H_A: \mu_1 \neq \mu_2\)
+
+```{r}
+t.test(GY ~ Season, data = soybean)
+```
+
+The Welch two-sample t-test gives a p-value of 0.7255. Since this is much larger than 0.05, we fail to reject the null hypothesis. There is not sufficient evidence to conclude that the mean grain yield differs between the two seasons.
+
+
+# Problem 2
+
+## a & b
+
+```{r}
+adult <- read.csv("adult.data", header = FALSE, strip.white = TRUE)
+
+dim(adult)
+head(adult)
+str(adult)
+
+names(adult) <- c(
+  "age",
+  "workclass",
+  "fnlwgt",
+  "education",
+  "education_num",
+  "marital_status",
+  "occupation",
+  "relationship",
+  "race",
+  "sex",
+  "capital_gain",
+  "capital_loss",
+  "hours_per_week",
+  "native_country",
+  "income"
+)
+
+names(adult)
+```
+
+## c
+
+```{r}
+colSums(adult == "?")
+```
+Missing values occur only in workclass, occupation, and native_country.
+## d
+
+```{r}
+adult_filtered <- subset(adult, hours_per_week >= 10)
+
+nrow(adult)
+nrow(adult_filtered)
+```
+
+There are 32561 observations before filtering and 32103 after filtering.
+
+## e
+
+```{r}
+adult_filtered[adult_filtered == "?"] <- NA
+
+adult_complete <- subset(
+  adult_filtered,
+  !is.na(occupation) &
+  !is.na(workclass) &
+  !is.na(native_country)
+)
+
+nrow(adult_filtered)
+nrow(adult_complete)
+```
+
+These observations were removed because occupation, workclass, and native country are needed for subsequent analysis, and missing values in these variables would make those observations incomplete.
+
+## f & g
+
+```{r}
+adult_complete2 <- subset(
+  adult_complete,
+  age >= 18 &
+  age <= 90 &
+  education != "Preschool"
+)
+
+nrow(adult_complete2)
+```
+
+After restricting the sample to individuals working at least 10 hours per week, removing observations with missing values in workclass, occupation, or native country, and excluding observations with age outside 18–90 or education level “Preschool”, the final sample contains 29523 observations.
+
+
+# Problem 3
+
+## a
+
+```{r}
+# Computes the next value in a happy-number sequence.
+# Input: n, a positive integer.
+# Output: the sum of the squares of the digits of n.
+nextHappy <- function(n) {
+  if (length(n) != 1 || !is.numeric(n) || n <= 0 || n != floor(n)) {
+    stop("n must be a positive integer.")
+  }
+
+  digits <- as.numeric(strsplit(as.character(n), "")[[1]])
+  sum(digits^2)
+}
+
+nextHappy(19)
+nextHappy(82)
+```
+The function and examples are shown above.
+
+## b
+
+```{r}
+# Generates the happy-number sequence starting from n.
+# Input: n, a positive integer.
+# Output: a list containing:
+#   sequence - the generated sequence;
+#   isHappy - TRUE if the sequence reaches 1, otherwise FALSE.
+happySequence <- function(n) {
+  if (length(n) != 1 || !is.numeric(n) || n <= 0 || n != floor(n)) {
+    stop("n must be a positive integer.")
+  }
+  
+  if (n == 1) {
+  return(list(sequence = 1, isHappy = TRUE))
+}
+
+  seq <- n
+
+  repeat {
+    next_value <- nextHappy(seq[length(seq)])
+
+    if (next_value == 1) {
+      seq <- c(seq, 1)
+      return(list(sequence = seq, isHappy = TRUE))
+    }
+
+    if (next_value %in% seq) {
+      return(list(sequence = seq, isHappy = FALSE))
+    }
+
+    seq <- c(seq, next_value)
+  }
+}
+
+happySequence(19)
+happySequence(4)
+
+```
+The function and examples are shown above.
+
+## c
+```{r}
+results <- lapply(1:1000, happySequence)
+
+is_happy <- sapply(results, function(x) x$isHappy)
+
+sum(is_happy)
+100 * mean(is_happy)
+
+seq_lengths <- sapply(
+  results,
+  function(x) if (x$isHappy) length(x$sequence) else NA
+)
+
+max_length <- max(seq_lengths, na.rm = TRUE)
+longest_starts <- which(seq_lengths == max_length)
+
+max_length
+longest_starts
+```
+
+From the code, 143 of 1000 (14.3%) numbers between 1 and 1000 are "happy".
+
+The maximum happy-sequence length is 7. The first starting value attaining this maximum is 356; several other starting values tie for the same maximum.
